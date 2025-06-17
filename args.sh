@@ -1,19 +1,23 @@
 #!/bin/bash
 
-BORRAR=false
+# Constantes
 VERSION="0.1"
+DATE=$(date +%Y%m%d)
+
+BORRAR=false
 
 for arg in "$@"
 do
   case $arg in
     --help|-h)
-        echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--borrar] [--help] [--version]"
+        echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--borrar] [--help] [--version] [--logfile=archivo]"
         echo "Opciones:"
         echo "  --archivos=xlsx,csv,txt  [Obligatorio] Especifica los tipos de archivos permitidos"
         echo "  --entrada=directorio     [Obligatorio] Especifica el directorio de entrada (no relativo)"
         echo "  --salida=directorio      [Obligatorio] Especifica el directorio de salida (no relativo)"
         echo "  --dias=<dias>            [Obligatorio] Especifica el número de días para filtrar archivos"
         echo "  --borrar                 [Opcional] Especifica si se debe los archivos a comprimir"
+        echo "  --logfile=archivo        [Opcional] Especifica el archivo de log"
         echo "  --help, -h               Muestra esta ayuda"
         echo "  --version, -v            Muestra la versión del script"
         exit 0
@@ -29,6 +33,9 @@ do
         ;;
     --borrar=*)
         BORRAR=true
+        ;;
+    --logfile=*)
+        LOGFILE="${arg#*=}"
         ;;
     --salida=*)
         SALIDA="${arg#*=}"
@@ -48,4 +55,8 @@ fi
 
 # Comando find para obtener los archivos
 condiciones_archivos="$(echo "$ARCHIVOS" | sed 's/,/" -o -name "*./g' | sed 's/^/-name "*./' | sed 's/$/"/')"
-eval "find \"$ENTRADA\" -type f -mtime -\"$DIAS\" \\( $condiciones_archivos \\) -print"
+condiciones_logfile=""
+if [ -n "$LOGFILE" ]; then
+  condiciones_logfile=">> \"$LOGFILE\" 2>&1"
+fi
+eval "find \"$ENTRADA\" -type f -mtime -\"$DIAS\" \\( $condiciones_archivos \\) -print | zip -r \"$SALIDA/backup_files_hasta_${DATE}.zip\" -@ $condiciones_logfile"

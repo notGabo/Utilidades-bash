@@ -14,7 +14,7 @@ do
     --help|-h)
         echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--borrar] [--help] [--version] [--logfile=archivo]"
         echo "Opciones:"
-        echo "  --archivos=xlsx,csv,txt  [Obligatorio] Especifica los tipos de archivos permitidos"
+        echo "  --archivos=formatos      [Obligatorio] Especifica los tipos de archivos permitidos. Ejemplo: --archivos=txt,log,csv"
         echo "  --entrada=directorio     [Obligatorio] Especifica el directorio de entrada (no relativo)"
         echo "  --salida=directorio      [Obligatorio] Especifica el directorio de salida (no relativo)"
         echo "  --dias=<dias>            [Obligatorio] Especifica el número de días para filtrar archivos"

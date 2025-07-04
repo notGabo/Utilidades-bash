@@ -13,7 +13,7 @@ for arg in "$@"
 do
   case $arg in
     --help|-h)
-        echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--entrada=directorio] [--salida=directorio] [--expresion=regex] [--dias=<dias>] [--borrar] [--logfile=archivo] [--help] [--verbose] [--version]"
+        echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--expresion=regex] [--borrar] [--help] [--version] [--verbose][--logfile=archivo]"
         echo "Opciones:"
         echo "  --archivos=formatos      [Obligatorio] Especifica los tipos de archivos permitidos. Ejemplo: --archivos=txt,log,csv"
         echo "  --entrada=directorio     [Obligatorio] Especifica el directorio de entrada (no relativo)"
@@ -48,9 +48,6 @@ do
     --regex=*)
         regex="${arg#*=}"
         ;;
-    --verbose)
-        set -x  # Habilita el modo verbose
-        ;;
     --version|-v)
         echo "Versión: $VERSION"
         exit 0
@@ -59,41 +56,31 @@ do
   esac
 done
 
-# Validación de argumentos vitales
+# Validación de argumentos
 if [ -z "$ARCHIVOS" ] || [ -z "$SALIDA" ] || [ -z "$ENTRADA" ] || [ -z "$DIAS" ]; then
   echo "Error: Los argumentos --archivos, --salida, --entrada y --dias son obligatorios."
   exit 1
 fi
-
 # Validación de logfile
 if [ -n "$LOGFILE" ]; then
-    if [ ! -d "$(dirname "$LOGFILE")" ]; then
-        mkdir -p "$(dirname "$LOGFILE")"
-    fi
   condiciones_logfile=">> \"$LOGFILE\" 2>&1"
 fi
 
-# Construcción de condiciones para find (solo extensiones)
+# Construcción de condiciones para find
 condiciones_archivos="$(echo "$ARCHIVOS" | sed 's/,/" -o -name "*./g' | sed 's/^/-name "*./' | sed 's/$/"/')"
 
-# Validar entrada de regex (se agrega como condición adicional)
+# Validar entrada de regex
 if [ -n "$regex" ]; then
-    # Escapa la regex para evitar problemas con Bash y find
-    escaped_regex=$(sed 's/[()]/\\&/g' <<< "$regex")  # Escapa paréntesis
-    condiciones_regex="-regextype posix-extended -regex \".*/$escaped_regex\""
-    # Combina condiciones: (extensiones) O (regex)
-    find_conditions="\\( $condiciones_archivos \\) -o \\( $condiciones_regex \\)"
-else
-    find_conditions="\\( $condiciones_archivos \\)"
+    echo "[$(date +"%m/%d/%y %T")] Usando expresión regular: $regex" >> "$LOGFILE"
 fi
 
-# Ejecución del find
-files=$(eval "find \"$ENTRADA\" -type f -mtime -\"$DIAS\" $find_conditions -print")
+# Ejecucion del script
+files=$(eval "find \"$ENTRADA\" -type f -mtime -\"$DIAS\" \\( $condiciones_archivos \\) -print")
 if [ -z "$files" ]; then
     echo "[$(date +"%m/%d/%y %T")] Error: No se han encontrado archivos, no se comprimirá nada" >> "$LOGFILE"
     exit 1
 fi
-echo "$files" | xargs tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz"
+echo "$files" | tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz" $condiciones_logfile -T -
 tar_exit_code=$?
 
 # Borrado de archivos si se especifica

@@ -1,0 +1,7 @@
+entrada/
+salida/
+logs/
+*.csv
+*.ini
+*.log
+

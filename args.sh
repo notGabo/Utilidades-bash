@@ -13,7 +13,7 @@ for arg in "$@"
 do
   case $arg in
     --help|-h)
-        echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--expresion=regex] [--borrar] [--help] [--version] [--logfile=archivo]"
+        echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--entrada=directorio] [--salida=directorio] [--expresion=regex] [--dias=<dias>] [--borrar] [--logfile=archivo] [--help] [--verbose] [--version]"
         echo "Opciones:"
         echo "  --archivos=formatos      [Obligatorio] Especifica los tipos de archivos permitidos. Ejemplo: --archivos=txt,log,csv"
         echo "  --entrada=directorio     [Obligatorio] Especifica el directorio de entrada (no relativo)"
@@ -23,6 +23,7 @@ do
         echo "  --borrar                 [Opcional] Especifica si se debe los archivos a comprimir"
         echo "  --logfile=archivo        [Opcional] Especifica el archivo de log"
         echo "  --help, -h               Muestra esta ayuda"
+        echo "  --verbose                Muestra información detallada durante la ejecución"
         echo "  --version, -v            Muestra la versión del script"
         exit 0
         ;;
@@ -47,6 +48,9 @@ do
     --regex=*)
         regex="${arg#*=}"
         ;;
+    --verbose)
+        set -x  # Habilita el modo verbose
+        ;;
     --version|-v)
         echo "Versión: $VERSION"
         exit 0
@@ -55,31 +59,41 @@ do
   esac
 done
 
-# Validación de argumentos
+# Validación de argumentos vitales
 if [ -z "$ARCHIVOS" ] || [ -z "$SALIDA" ] || [ -z "$ENTRADA" ] || [ -z "$DIAS" ]; then
   echo "Error: Los argumentos --archivos, --salida, --entrada y --dias son obligatorios."
   exit 1
 fi
+
 # Validación de logfile
 if [ -n "$LOGFILE" ]; then
+    if [ ! -d "$(dirname "$LOGFILE")" ]; then
+        mkdir -p "$(dirname "$LOGFILE")"
+    fi
   condiciones_logfile=">> \"$LOGFILE\" 2>&1"
 fi
 
-# Validar entrada de regex
-if [ -n "$regex" ]; then
-    # Validar sintaxis de regex
-    if ! [[ "$regex" =~ ^[a-zA-Z0-9_]+$ ]]; then
-        echo "Error: La expresión regular '$regex' no es válida."
-        exit 1
-    fi
-fi
-
-
-# Construcción de condiciones para find
+# Construcción de condiciones para find (solo extensiones)
 condiciones_archivos="$(echo "$ARCHIVOS" | sed 's/,/" -o -name "*./g' | sed 's/^/-name "*./' | sed 's/$/"/')"
 
-# Ejecucion del script
-eval "find \"$ENTRADA\" -type f -mtime -\"$DIAS\" \\( $condiciones_archivos \\) -print | tar -czf \"$SALIDA/backup_files_hasta_${DATE}.tar.gz\" -T - $condiciones_logfile"
+# Validar entrada de regex (se agrega como condición adicional)
+if [ -n "$regex" ]; then
+    # Escapa la regex para evitar problemas con Bash y find
+    escaped_regex=$(sed 's/[()]/\\&/g' <<< "$regex")  # Escapa paréntesis
+    condiciones_regex="-regextype posix-extended -regex \".*/$escaped_regex\""
+    # Combina condiciones: (extensiones) O (regex)
+    find_conditions="\\( $condiciones_archivos \\) -o \\( $condiciones_regex \\)"
+else
+    find_conditions="\\( $condiciones_archivos \\)"
+fi
+
+# Ejecución del find
+files=$(eval "find \"$ENTRADA\" -type f -mtime -\"$DIAS\" $find_conditions -print")
+if [ -z "$files" ]; then
+    echo "[$(date +"%m/%d/%y %T")] Error: No se han encontrado archivos, no se comprimirá nada" >> "$LOGFILE"
+    exit 1
+fi
+echo "$files" | xargs tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz"
 tar_exit_code=$?
 
 # Borrado de archivos si se especifica
@@ -91,6 +105,7 @@ if [ "$BORRAR" = true ]; then
         exit $rm_exit_code
     fi
 fi
+
 RUTA_COMPLETA=$(realpath "$SALIDA/backup_files_hasta_${DATE}.tar.gz")
 echo "[$(date +"%m/%d/%y %T")] Archivos comprimidos correctamente en \"$RUTA_COMPLETA\"" >> "$LOGFILE"
 exit 0

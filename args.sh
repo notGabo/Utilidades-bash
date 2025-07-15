@@ -6,20 +6,20 @@ DATE=$(date +%Y%m%d)
 
 BORRAR=false
 condiciones_logfile=""
-regex=""
+nombreprefijo=""
 
 # Control de argumentos
 for arg in "$@"
 do
   case $arg in
     --help|-h)
-        echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--expresion=regex] [--borrar] [--help] [--version] [--verbose][--logfile=archivo]"
+        echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--nombreprefijo=nombre] [--borrar] [--help] [--version] [--verbose][--logfile=archivo]"
         echo "Opciones:"
         echo "  --archivos=formatos      [Obligatorio] Especifica los tipos de archivos permitidos. Ejemplo: --archivos=txt,log,csv"
         echo "  --entrada=directorio     [Obligatorio] Especifica el directorio de entrada (no relativo)"
         echo "  --salida=directorio      [Obligatorio] Especifica el directorio de salida (no relativo)"
-        echo "  --expresion=regex        [En desarrollo] Expresión regular para filtrar archivos por su titulo. Ejemplo: --expresion=backup_[0-9]+"
         echo "  --dias=<dias>            [Obligatorio] Especifica el número de días para filtrar archivos"
+        echo "  --nombreprefijo=nombre   [Opcional] Filtra archivos por su titulo. Ejemplo: --expresion=backup == resultado ejemplo backup_20231001.txt"
         echo "  --borrar                 [Opcional] Especifica si se debe los archivos a comprimir"
         echo "  --logfile=archivo        [Opcional] Especifica el archivo de log"
         echo "  --help, -h               Muestra esta ayuda"
@@ -45,11 +45,8 @@ do
     --salida=*)
         SALIDA="${arg#*=}"
         ;;
-    --expresion=*)
-        regex="${arg#*=}"
-        ;;
-    --regex=*)
-        regex="${arg#*=}"
+    --nombreprefijo=*)
+        nombreprefijo="${arg#*=}"
         ;;
     --version|-v)
         echo "Versión: $VERSION"
@@ -78,26 +75,16 @@ fi
 # Construcción de condiciones para find
 condiciones_archivos="$(echo "$ARCHIVOS" | sed 's/,/" -o -name "*./g' | sed 's/^/-name "*./' | sed 's/$/"/')"
 
-# Validar entrada de regex
-if [ -n "$regex" ]; then
-    if [ "$LOGFILE_PROVIDED" = true ]; then
-        echo "[$(date +"%m/%d/%y %T")] Usando expresión regular: $regex" >> "$LOGFILE"
-    else
-        echo "[$(date +"%m/%d/%y %T")] Usando expresión regular: $regex"
-    fi
-fi
-
 ## Ejecucion del script
 # Construir comando find base
 find_cmd="find \"$ENTRADA\" -type f -mtime -\"$DIAS\" \\( $condiciones_archivos \\)"
+echo "Comando find: $find_cmd -print | xargs -n1 basename | grep -E \"${nombreprefijo}\" | xargs -I{} find \"$ENTRADA\" -name \"{}\""
 
-# Ejecutar el comando find
-if [ -n "$regex" ]; then
-    # Si hay regex, ejecutamos find y luego filtramos con grep
-    # Extraemos solo el nombre de archivo y aplicamos grep
-    files=$(eval "$find_cmd -print | xargs -n1 basename | grep -E \"${regex}\" | xargs -I{} find \"$ENTRADA\" -name \"{}\"")
+if [ -n "$nombreprefijo" ]; then
+    # Si hay nombreprefijo, ejecutamos find y filtramos directamente con grep
+    files=$(eval "$find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\"")
 else
-    # Si no hay regex, ejecutamos find directamente
+    # Si no hay nombreprefijo, ejecutamos find directamente
     files=$(eval "$find_cmd -print")
 fi
 
@@ -112,39 +99,24 @@ fi
 
 # Asegurarse de que el directorio de salida existe
 mkdir -p "$SALIDA"
-
-# Crear un archivo temporal con la lista de archivos
-temp_file=$(mktemp)
-echo "$files" > "$temp_file"
-
-# Ejecutar tar con redirección adecuada
+# Crear tar directamente desde el comando find
 if [ "$LOGFILE_PROVIDED" = true ]; then
-    tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz" -T "$temp_file" >> "$LOGFILE" 2>&1
+    echo "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz" >> "$LOGFILE" 2>&1
 else
-    tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz" -T "$temp_file"
+    echo "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz"
 fi
 tar_exit_code=$?
 
-# Eliminar el archivo temporal
-rm -f "$temp_file"
-
 # Borrado de archivos si se especifica
 if [ "$BORRAR" = true ]; then
-    # Crear un archivo temporal con la lista de archivos para borrar
-    temp_delete_file=$(mktemp)
-    echo "$files" > "$temp_delete_file"
-    
     # Borrar los archivos
     if [ "$LOGFILE_PROVIDED" = true ]; then
-        cat "$temp_delete_file" | xargs rm -f >> "$LOGFILE" 2>&1
+        echo "$files" | tr '\n' '\0' | xargs -0 rm -f >> "$LOGFILE" 2>&1
     else
-        cat "$temp_delete_file" | xargs rm -f
+        echo "$files" | tr '\n' '\0' | xargs -0 rm -f
     fi
     rm_exit_code=$?
-    
-    # Eliminar el archivo temporal
-    rm -f "$temp_delete_file"
-    
+
     if [ $rm_exit_code -ne 0 ]; then
         if [ "$LOGFILE_PROVIDED" = true ]; then
             echo "[$(date +"%m/%d/%y %T")] Error: No se pudieron borrar los archivos. Codigo de error: $rm_exit_code" >> "$LOGFILE"

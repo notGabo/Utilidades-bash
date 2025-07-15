@@ -61,8 +61,8 @@ if [ -z "$ARCHIVOS" ] || [ -z "$SALIDA" ] || [ -z "$ENTRADA" ] || [ -z "$DIAS" ]
   echo "Error: Los argumentos --archivos, --salida, --entrada y --dias son obligatorios."
   exit 1
 fi
+
 # Validación de logfile
-# No usamos una variable para la redirección, sino que redirigimos directamente en los comandos
 LOGFILE_PROVIDED=false
 if [ -n "$LOGFILE" ]; then
   LOGFILE_PROVIDED=true
@@ -76,15 +76,12 @@ fi
 condiciones_archivos="$(echo "$ARCHIVOS" | sed 's/,/" -o -name "*./g' | sed 's/^/-name "*./' | sed 's/$/"/')"
 
 ## Ejecucion del script
-# Construir comando find base
 find_cmd="find \"$ENTRADA\" -type f -mtime -\"$DIAS\" \\( $condiciones_archivos \\)"
-echo "Comando find: $find_cmd -print | xargs -n1 basename | grep -E \"${nombreprefijo}\" | xargs -I{} find \"$ENTRADA\" -name \"{}\""
+echo "Comando find: $find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\""
 
 if [ -n "$nombreprefijo" ]; then
-    # Si hay nombreprefijo, ejecutamos find y filtramos directamente con grep
     files=$(eval "$find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\"")
 else
-    # Si no hay nombreprefijo, ejecutamos find directamente
     files=$(eval "$find_cmd -print")
 fi
 
@@ -99,7 +96,7 @@ fi
 
 # Asegurarse de que el directorio de salida existe
 mkdir -p "$SALIDA"
-# Crear tar directamente desde el comando find
+
 if [ "$LOGFILE_PROVIDED" = true ]; then
     echo "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz" >> "$LOGFILE" 2>&1
 else
@@ -109,7 +106,6 @@ tar_exit_code=$?
 
 # Borrado de archivos si se especifica
 if [ "$BORRAR" = true ]; then
-    # Borrar los archivos
     if [ "$LOGFILE_PROVIDED" = true ]; then
         echo "$files" | tr '\n' '\0' | xargs -0 rm -f >> "$LOGFILE" 2>&1
     else

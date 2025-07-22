@@ -52,6 +52,9 @@ do
         echo "Versión: $VERSION"
         exit 0
         ;;
+    --verbose)
+        set -x
+        ;;
     *)
   esac
 done
@@ -61,6 +64,23 @@ if [ -z "$ARCHIVOS" ] || [ -z "$SALIDA" ] || [ -z "$ENTRADA" ] || [ -z "$DIAS" ]
   echo "Error: Los argumentos --archivos, --salida, --entrada y --dias son obligatorios."
   exit 1
 fi
+
+# Función para encontrar el siguiente número disponible para el archivo
+obtener_numero_siguiente_archivo() {
+    local nombreBase="backup_files_hasta_${DATE}"
+    local contador=1
+
+    while [[ -f "$SALIDA/${nombreBase}.${contador}.tar.gz" ]]; do
+        ((contador++))
+    done
+
+    echo $contador
+}
+
+
+# Obtener el siguiente número de archivo disponible
+file_number=$(obtener_numero_siguiente_archivo)
+nombrearchivocomprimido="backup_files_hasta_${DATE}.${file_number}.tar.gz"
 
 # Validación de logfile
 LOGFILE_PROVIDED=false
@@ -97,10 +117,11 @@ fi
 # Asegurarse de que el directorio de salida existe
 mkdir -p "$SALIDA"
 
+# Manejo del logfile
 if [ "$LOGFILE_PROVIDED" = true ]; then
-    echo "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz" >> "$LOGFILE" 2>&1
+    echo "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/$nombrearchivocomprimido" >> "$LOGFILE" 2>&1
 else
-    echo "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/backup_files_hasta_${DATE}.tar.gz"
+    echo "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/$nombrearchivocomprimido"
 fi
 tar_exit_code=$?
 
@@ -123,7 +144,7 @@ if [ "$BORRAR" = true ]; then
     fi
 fi
 
-RUTA_COMPLETA=$(realpath "$SALIDA/backup_files_hasta_${DATE}.tar.gz")
+RUTA_COMPLETA=$(realpath "$SALIDA/$nombrearchivocomprimido")
 if [ "$LOGFILE_PROVIDED" = true ]; then
     echo "[$(date +"%m/%d/%y %T")] Archivos comprimidos correctamente en \"$RUTA_COMPLETA\"" >> "$LOGFILE"
 else

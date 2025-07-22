@@ -4,4 +4,4 @@ logs/
 *.csv
 *.ini
 *.log
-
+*.gz

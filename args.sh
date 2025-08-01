@@ -13,18 +13,18 @@ for arg in "$@"
 do
   case $arg in
     --help|-h)
-        echo "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--nombreprefijo=nombre] [--borrar] [--help] [--version] [--verbose][--logfile=archivo]"
-        echo "Opciones:"
-        echo "  --archivos=formatos      [Obligatorio] Especifica los tipos de archivos permitidos. Ejemplo: --archivos=txt,log,csv"
-        echo "  --entrada=directorio     [Obligatorio] Especifica el directorio de entrada (no relativo)"
-        echo "  --salida=directorio      [Obligatorio] Especifica el directorio de salida (no relativo)"
-        echo "  --dias=<dias>            [Obligatorio] Especifica el número de días para filtrar archivos"
-        echo "  --nombreprefijo=nombre   [Opcional] Filtra archivos por su titulo. Ejemplo: --expresion=backup == resultado ejemplo backup_20231001.txt"
-        echo "  --borrar                 [Opcional] Especifica si se debe los archivos a comprimir"
-        echo "  --logfile=archivo        [Opcional] Especifica el archivo de log"
-        echo "  --help, -h               Muestra esta ayuda"
-        echo "  --verbose                Muestra información detallada durante la ejecución"
-        echo "  --version, -v            Muestra la versión del script"
+        echo -e "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--nombreprefijo=nombre] [--borrar] [--help] [--version] [--verbose][--logfile=archivo]"
+        echo -e "Opciones:"
+        echo -e "  --archivos=formatos      [Obligatorio] Especifica los tipos de archivos permitidos. Ejemplo: --archivos=txt,log,csv"
+        echo -e "  --entrada=directorio     [Obligatorio] Especifica el directorio de entrada (no relativo)"
+        echo -e "  --salida=directorio      [Obligatorio] Especifica el directorio de salida (no relativo)"
+        echo -e "  --dias=<dias>            [Obligatorio] Especifica el número de días para filtrar archivos"
+        echo -e "  --nombreprefijo=nombre   [Opcional] Filtra archivos por su titulo. Ejemplo: --expresion=backup == resultado ejemplo backup_20231001.txt"
+        echo -e "  --borrar                 [Opcional] Especifica si se debe los archivos a comprimir"
+        echo -e "  --logfile=archivo        [Opcional] Especifica el archivo de log"
+        echo -e "  --help, -h               Muestra esta ayuda"
+        echo -e "  --verbose                Muestra información detallada durante la ejecución"
+        echo -e "  --version, -v            Muestra la versión del script"
         exit 0
         ;;
     --archivos=*)
@@ -49,7 +49,7 @@ do
         nombreprefijo="${arg#*=}"
         ;;
     --version|-v)
-        echo "Versión: $VERSION"
+        echo -e "Versión: $VERSION"
         exit 0
         ;;
     --verbose)
@@ -61,7 +61,7 @@ done
 
 # Validación de argumentos
 if [ -z "$ARCHIVOS" ] || [ -z "$SALIDA" ] || [ -z "$ENTRADA" ] || [ -z "$DIAS" ]; then
-  echo "Error: Los argumentos --archivos, --salida, --entrada y --dias son obligatorios."
+  echo -e "Error: Los argumentos --archivos, --salida, --entrada y --dias son obligatorios."
   exit 1
 fi
 
@@ -74,7 +74,7 @@ obtener_numero_siguiente_archivo() {
         ((contador++))
     done
 
-    echo $contador
+    echo -e $contador
 }
 
 
@@ -93,11 +93,12 @@ if [ -n "$LOGFILE" ]; then
 fi
 
 # Construcción de condiciones para find
-condiciones_archivos="$(echo "$ARCHIVOS" | sed 's/,/" -o -name "*./g' | sed 's/^/-name "*./' | sed 's/$/"/')"
+condiciones_archivos="$(echo -e "$ARCHIVOS" | sed 's/,/" -o -name "*./g' | sed 's/^/-name "*./' | sed 's/$/"/')"
 
 ## Ejecucion del script
 find_cmd="find \"$ENTRADA\" -type f -mtime -\"$DIAS\" \\( $condiciones_archivos \\)"
-echo "Comando find: $find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\""
+echo -e "Comando find: $find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\""
+
 
 if [ -n "$nombreprefijo" ]; then
     files=$(eval "$find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\"")
@@ -107,47 +108,54 @@ fi
 
 if [ -z "$files" ]; then
     if [ "$LOGFILE_PROVIDED" = true ]; then
-        echo "[$(date +"%m/%d/%y %T")] Error: No se han encontrado archivos, no se comprimirá nada" >> "$LOGFILE"
+        echo -e "\n[$(date +"%m/%d/%y %T")] Error: No se han encontrado archivos, no se comprimirá nada" >> "$LOGFILE"
     else
-        echo "[$(date +"%m/%d/%y %T")] Error: No se han encontrado archivos, no se comprimirá nada"
+        echo -e "\n[$(date +"%m/%d/%y %T")] Error: No se han encontrado archivos, no se comprimirá nada"
     fi
     exit 1
 fi
+
+echo -e "\n[$(date +"%m/%d/%y %T")] Directorio antes de la compresión:"
+tree ${ENTRADA} | grep ${nombreprefijo}
 
 # Asegurarse de que el directorio de salida existe
 mkdir -p "$SALIDA"
 
 # Manejo del logfile
 if [ "$LOGFILE_PROVIDED" = true ]; then
-    echo "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/$nombrearchivocomprimido" >> "$LOGFILE" 2>&1
+    echo -e "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/$nombrearchivocomprimido" >> "$LOGFILE" 2>&1
 else
-    echo "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/$nombrearchivocomprimido"
+    echo -e "$files" | tr '\n' '\0' | xargs -0 tar -czf "$SALIDA/$nombrearchivocomprimido"
 fi
 tar_exit_code=$?
 
 # Borrado de archivos si se especifica
 if [ "$BORRAR" = true ]; then
     if [ "$LOGFILE_PROVIDED" = true ]; then
-        echo "$files" | tr '\n' '\0' | xargs -0 rm -f >> "$LOGFILE" 2>&1
+        echo -e "$files" | tr '\n' '\0' | xargs -0 rm -f >> "$LOGFILE" 2>&1
     else
-        echo "$files" | tr '\n' '\0' | xargs -0 rm -f
+        echo -e "$files" | tr '\n' '\0' | xargs -0 rm -f
     fi
     rm_exit_code=$?
 
     if [ $rm_exit_code -ne 0 ]; then
         if [ "$LOGFILE_PROVIDED" = true ]; then
-            echo "[$(date +"%m/%d/%y %T")] Error: No se pudieron borrar los archivos. Codigo de error: $rm_exit_code" >> "$LOGFILE"
+            echo -e "\n[$(date +"%m/%d/%y %T")] Error: No se pudieron borrar los archivos. Codigo de error: $rm_exit_code" >> "$LOGFILE"
         else
-            echo "[$(date +"%m/%d/%y %T")] Error: No se pudieron borrar los archivos. Codigo de error: $rm_exit_code"
+            echo -e "\n[$(date +"%m/%d/%y %T")] Error: No se pudieron borrar los archivos. Codigo de error: $rm_exit_code"
         fi
         exit $rm_exit_code
     fi
 fi
 
+
+echo -e "\n[$(date +"%m/%d/%y %T")] directorio después de la compresión:"
+tree ${ENTRADA} | grep ${nombreprefijo}
+
 RUTA_COMPLETA=$(realpath "$SALIDA/$nombrearchivocomprimido")
 if [ "$LOGFILE_PROVIDED" = true ]; then
-    echo "[$(date +"%m/%d/%y %T")] Archivos comprimidos correctamente en \"$RUTA_COMPLETA\"" >> "$LOGFILE"
+    echo -e "\n[$(date +"%m/%d/%y %T")] Archivos comprimidos correctamente en \"$RUTA_COMPLETA\"" >> "$LOGFILE"
 else
-    echo "[$(date +"%m/%d/%y %T")] Archivos comprimidos correctamente en \"$RUTA_COMPLETA\""
+    echo -e "\n[$(date +"%m/%d/%y %T")] Archivos comprimidos correctamente en \"$RUTA_COMPLETA\""
 fi
 exit 0

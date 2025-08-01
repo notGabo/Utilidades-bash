@@ -5,3 +5,5 @@ logs/
 *.ini
 *.log
 *.gz
+.venv
+test.py

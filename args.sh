@@ -116,7 +116,7 @@ if [ -z "$files" ]; then
 fi
 
 echo -e "\n[$(date +"%m/%d/%y %T")] Directorio antes de la compresión:"
-tree ${ENTRADA} | grep ${nombreprefijo}
+find "${ENTRADA}" -name "${nombreprefijo}*" -print | sed "s|^${ENTRADA}||"
 
 # Asegurarse de que el directorio de salida existe
 mkdir -p "$SALIDA"
@@ -150,7 +150,7 @@ fi
 
 
 echo -e "\n[$(date +"%m/%d/%y %T")] directorio después de la compresión:"
-tree ${ENTRADA} | grep ${nombreprefijo}
+find "${ENTRADA}" -name "${nombreprefijo}*" -print | sed "s|^${ENTRADA}||"
 
 RUTA_COMPLETA=$(realpath "$SALIDA/$nombrearchivocomprimido")
 if [ "$LOGFILE_PROVIDED" = true ]; then

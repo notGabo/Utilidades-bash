@@ -54,6 +54,43 @@ do
         CONFIGURACION="${arg#*=}"
         if [ -f "$CONFIGURACION" ]; then
             source "$CONFIGURACION"
+            echo -e "Configuración actual:"
+            echo -e "  Configuracion: $CONFIGURACION"
+            if [ -n "$ARCHIVOS" ]; then
+                echo -e "  Archivos: $ARCHIVOS"
+            else
+                echo -e "  Archivos: No especificados"
+            fi
+            if [ -n "$ENTRADA" ]; then
+                echo -e "  Entrada: $ENTRADA"
+            else
+                echo -e "  Entrada: No especificado"
+            fi
+            if [ -n "$SALIDA" ]; then
+                echo -e "  Salida: $SALIDA"
+            else
+                echo -e "  Salida: No especificado"
+            fi
+            if [ -n "$DIAS" ]; then
+                echo -e "  Días: $DIAS"
+            else
+                echo -e "  Días: No especificado"
+            fi
+            if [ "$BORRAR" = true ]; then
+                echo -e "  Borrar: Sí"
+            else
+                echo -e "  Borrar: No"
+            fi
+            if [ -n "$nombreprefijo" ]; then
+                echo -e "  Nombre Prefijo: $nombreprefijo"
+            else
+                echo -e "  Nombre Prefijo: No especificado"
+            fi
+            if [ -n "$LOGFILE" ]; then
+                echo -e "  Logfile: $LOGFILE"
+            else
+                echo -e "  Logfile: No especificado"
+            fi
         else
             echo -e "Error: El archivo de configuración '$CONFIGURACION' no existe."
             exit 1
@@ -69,17 +106,6 @@ do
     *)
   esac
 done
-
-
-echo -e "Configuración actual:"
-echo -e "  Configuracion: $CONFIGURACION"
-echo -e "  Archivos: $ARCHIVOS"
-echo -e "  Entrada: $ENTRADA"
-echo -e "  Salida: $SALIDA"
-echo -e "  Días: $DIAS"
-echo -e "  Borrar: $BORRAR"
-echo -e "  Nombre Prefijo: $nombreprefijo"
-echo -e "  Logfile: $LOGFILE"
 
 
 

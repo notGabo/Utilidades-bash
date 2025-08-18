@@ -14,7 +14,7 @@ for arg in "$@"
 do
   case $arg in
     --help|-h)
-        echo -e "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--nombreprefijo=nombre] [--borrar] [--help] [--version] [--verbose][--logfile=archivo]"
+        echo -e "Uso: $0 [--archivos=lista de archivos separados por coma] [--dias=<dias>] [--entrada=directorio] [--salida=directorio] [--nombreprefijo=nombre] [--borrar] [--configuracion=archivo] [--help] [--version] [--verbose] [--logfile=archivo]"
         echo -e "Opciones:"
         echo -e "  --archivos=formatos      [Obligatorio] Especifica los tipos de archivos permitidos. Ejemplo: --archivos=txt,log,csv"
         echo -e "  --entrada=directorio     [Obligatorio] Especifica el directorio de entrada (no relativo)"

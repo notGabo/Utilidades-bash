@@ -4,6 +4,7 @@
 VERSION="0.1"
 DATE=$(date +%Y%m%d)
 
+# Variables por defecto
 BORRAR=false
 condiciones_logfile=""
 nombreprefijo=""
@@ -21,6 +22,7 @@ do
         echo -e "  --dias=<dias>            [Obligatorio] Especifica el número de días para filtrar archivos"
         echo -e "  --nombreprefijo=nombre   [Opcional] Filtra archivos por su titulo. Ejemplo: --expresion=backup == resultado ejemplo backup_20231001.txt"
         echo -e "  --borrar                 [Opcional] Especifica si se debe los archivos a comprimir"
+        echo -e "  --configuracion=archivo  [Opcional] Especifica un archivo de configuración para los parámetros"
         echo -e "  --logfile=archivo        [Opcional] Especifica el archivo de log"
         echo -e "  --help, -h               Muestra esta ayuda"
         echo -e "  --verbose                Muestra información detallada durante la ejecución"
@@ -48,6 +50,15 @@ do
     --nombreprefijo=*)
         nombreprefijo="${arg#*=}"
         ;;
+    --configuracion=*)
+        CONFIGURACION="${arg#*=}"
+        if [ -f "$CONFIGURACION" ]; then
+            source "$CONFIGURACION"
+        else
+            echo -e "Error: El archivo de configuración '$CONFIGURACION' no existe."
+            exit 1
+        fi
+        ;;
     --version|-v)
         echo -e "Versión: $VERSION"
         exit 0
@@ -59,8 +70,21 @@ do
   esac
 done
 
+
+echo -e "Configuración actual:"
+echo -e "  Configuracion: $CONFIGURACION"
+echo -e "  Archivos: $ARCHIVOS"
+echo -e "  Entrada: $ENTRADA"
+echo -e "  Salida: $SALIDA"
+echo -e "  Días: $DIAS"
+echo -e "  Borrar: $BORRAR"
+echo -e "  Nombre Prefijo: $nombreprefijo"
+echo -e "  Logfile: $LOGFILE"
+
+
+
 # Validación de argumentos
-if [ -z "$ARCHIVOS" ] || [ -z "$SALIDA" ] || [ -z "$ENTRADA" ] || [ -z "$DIAS" ]; then
+if [ -z "$ARCHIVOS" ] || [ -z "$SALIDA" ] || [ -z "$ENTRADA" ] || [ -z "$DIAS" ] ; then
   echo -e "Error: Los argumentos --archivos, --salida, --entrada y --dias son obligatorios."
   exit 1
 fi

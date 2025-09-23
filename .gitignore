@@ -2,6 +2,8 @@ entrada/
 salida/
 logs/
 *.csv
+*.txt
+*.xlsx
 *.ini
 *.log
 *.gz

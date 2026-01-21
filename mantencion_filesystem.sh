@@ -19,7 +19,7 @@ do
         echo -e "  --archivos=formatos      [Obligatorio] Especifica los tipos de archivos permitidos. Ejemplo: --archivos=txt,log,csv"
         echo -e "  --entrada=directorio     [Obligatorio] Especifica el directorio de entrada (no relativo)"
         echo -e "  --salida=directorio      [Obligatorio] Especifica el directorio de salida (no relativo)"
-        echo -e "  --dias=<dias>            [Obligatorio] Especifica el número de días para filtrar archivos"
+        echo -e "  --dias=<+dias o -dias>   [Obligatorio] Especifica el número de días para filtrar archivos"
         echo -e "  --nombreprefijo=nombre   [Opcional] Filtra archivos por su titulo. Ejemplo: --expresion=backup == resultado ejemplo backup_20231001.txt"
         echo -e "  --borrar                 [Opcional] Especifica si se debe los archivos a comprimir"
         echo -e "  --configuracion=archivo  [Opcional] Especifica un archivo de configuración para los parámetros"
@@ -146,7 +146,7 @@ fi
 condiciones_archivos="$(echo -e "$ARCHIVOS" | sed 's/,/" -o -name "*./g' | sed 's/^/-name "*./' | sed 's/$/"/')"
 
 ## Ejecucion del script
-find_cmd="find \"$ENTRADA\" -type f -mtime +\"$DIAS\" \\( $condiciones_archivos \\)"
+find_cmd="find \"$ENTRADA\" -type f -mtime \"$DIAS\" \\( $condiciones_archivos \\)"
 # find_cmd="find \"$ENTRADA\" -type f \\( $condiciones_archivos \\)"
 # echo -e "Comando find: $find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\""
 echo -e "Comando find: $find_cmd -print"

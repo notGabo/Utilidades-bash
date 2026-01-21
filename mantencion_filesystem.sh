@@ -146,9 +146,10 @@ fi
 condiciones_archivos="$(echo -e "$ARCHIVOS" | sed 's/,/" -o -name "*./g' | sed 's/^/-name "*./' | sed 's/$/"/')"
 
 ## Ejecucion del script
-find_cmd="find \"$ENTRADA\" -type f -mtime +\"$DIAS\" \\( $condiciones_archivos \\)"
-echo -e "Comando find: $find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\""
-
+find_cmd="find \"$ENTRADA\" -type f -mtime -\"$DIAS\" \\( $condiciones_archivos \\)"
+# find_cmd="find \"$ENTRADA\" -type f \\( $condiciones_archivos \\)"
+# echo -e "Comando find: $find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\""
+echo -e "Comando find: $find_cmd -print"
 
 if [ -n "$nombreprefijo" ]; then
     files=$(eval "$find_cmd -print | grep -E \"/${nombreprefijo}[^/]*$\"")
